@@ -2,7 +2,7 @@ program main
     implicit none
     real, dimension(:,:,:), allocatable :: A,B
     real :: sum
-    integer :: i,j,k,dx,dy,dz, N=128
+    integer :: i,j,k,dx,dy,dz, N=128*2
 
     ALLOCATE(A(N,N,N))
     ALLOCATE(B(N,N,N))
