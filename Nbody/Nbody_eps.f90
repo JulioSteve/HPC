@@ -2,8 +2,9 @@ program main
     implicit none
     integer :: N,i,j
     integer,parameter :: Tsteps=int(3)
-    real :: m,mtot,x,y,z,dist0, omega, dt, t, G, vcm
+    real :: m,mtot,x,y,z,dist0, omega, dt, t, G
     real,dimension(:,:),allocatable :: pos,vel
+    real, dimension(3) :: vcm
     integer,dimension(8) :: seed
     
     seed = [324549107,1517762999,2043478039,169521159,-1935932375,513922432,1075905891,-1147996143]
@@ -38,13 +39,9 @@ program main
         vel(i,3) = 0
     end do
     
-    vcm = 0
-    do i=1,N
-        vcm = vcm + vel(i,1)*vel(i,1) + vel(i,2)*vel(i,2) + vel(i,3)*vel(i,3)
-    enddo
-    vcm = sqrt(vcm)/N
-    do i=1,N
-        vel(i,:) = vel(i,:)-vcm
+    do i=1,3
+        vcm(i) = sum(vel(i,:))/N
+        vel(i,:) = vel(i,:)-vcm(i)
     enddo
 
     t = 0.
@@ -71,7 +68,7 @@ program main
             eps=0.
             
             fscal = (sqrt((pos1(1)-pos2(1))**2+&
-            (pos1(2)-pos2(2))**2+(pos1(3)-pos2(3))**2+eps**2)**3)
+            (pos1(2)-pos2(2))**2+(pos1(3)-pos2(3))**2+eps*eps)**3)
 
             fscal = G*m*m/fscal
 
