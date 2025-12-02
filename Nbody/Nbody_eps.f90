@@ -39,9 +39,9 @@ program main
         vel(i,3) = 0
     end do
     
-    do i=1,3
-        vcm(i) = sum(vel(i,:))/N
-        vel(i,:) = vel(i,:)-vcm(i)
+    do j=1,3
+        vcm(j) = sum(vel(:,j))/N
+        vel(:,j) = vel(:,j)-vcm(j)
     enddo
 
     t = 0.
