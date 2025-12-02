@@ -1,27 +1,21 @@
 program main
     implicit none
-    integer :: N,i,j
-    integer,parameter :: Tsteps=int(3)
-    real :: m,mtot,x,y,z,dist0, omega, dt, t, G
-    real,dimension(:,:),allocatable :: pos,vel
+    integer :: i,j
+
+    integer,parameter :: Tsteps=int(1e3), N=int(1e3)
+    real, parameter :: dt=5e-3, m=1./N, mtot=m*N, omega=1., G=1., R=1.
+
+    real :: x,y,z,dist0, t
+    real,dimension(N,3) :: pos,vel
     real, dimension(3) :: vcm
     integer,dimension(8) :: seed
     
     seed = [324549107,1517762999,2043478039,169521159,-1935932375,513922432,1075905891,-1147996143]
     call random_seed(put=seed)
-
-    print *,"Please, enter a number of bodies:"
-    read(*,*) N
-    m = 1.
-    omega = 1.
-    G = 1.
-    mtot = m*N
     
-    allocate(pos(N,3))
-    allocate(vel(N,3))
     do i=1,N
-        dist0 = 1.
-        do while (dist0>=1)
+        dist0 = R
+        do while (dist0>=R)
             call random_number(x)
             call random_number(y)
             call random_number(z)
@@ -45,27 +39,30 @@ program main
     enddo
 
     t = 0.
-    dt = 5e-4
-    open(unit=10,file="nbody.dat")
-    write(10,*) "Time steps:",Tsteps
+    open(unit=10,file="settings.dat")
+    write(10,*) "Time steps, number of bodies, dt"
+    write(10,*) Tsteps, N, dt
+    close(10)
+
+    open(unit=11,file="pos.bin",form="unformatted")
+    open(unit=12,file="vel.bin",form="unformatted")
     do j=0,Tsteps
-        if (mod(j,1)==0) then
-            do i=1,N
-                write(10,'(F8.5,3F10.2,3F10.2)') t,pos(i,:),vel(i,:)
-            enddo
+        if (mod(j,10)==0) then
+            write(11) pos(:,:)
+            write(12) vel(:,:)
         endif
         call leapfrog(dt,pos,vel)
         t = t+dt
     enddo
-    close(10)
-    
+    close(11)
+    close(12)
 
     contains
         subroutine force(f,pos1,pos2)
             real,dimension(3),intent(in) :: pos1,pos2
             real,dimension(3),intent(out) :: f
             real :: fscal, eps
-            eps=0.
+            eps=0.99
             
             fscal = (sqrt((pos1(1)-pos2(1))**2+&
             (pos1(2)-pos2(2))**2+(pos1(3)-pos2(3))**2+eps*eps)**3)

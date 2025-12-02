@@ -3,12 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as anim
 
 # Load data
-t, x, y, z = np.loadtxt("save.dat", skiprows=1,unpack=True, usecols=[0,1,2,3])
 
-# Parameters
-# print("Please, enter the number of bodies:")
-# N = int(input("N = ... "))
-N=100
 timesteps = len(t) // N  # number of frames
 
 # Setup figure
