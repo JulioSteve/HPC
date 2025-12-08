@@ -40,7 +40,7 @@
         enddo
 
         t = 0.
-        open(unit=10,file="settings.dat")
+        open(unit=10,file="settings.dat", status="replace")
         write(10,*) "Time steps, number of bodies, dt, modulo (every simulation results are printed at each modulo)"
         write(10,*) Tsteps, N, dt, modu
         close(10)
@@ -48,16 +48,23 @@
         open(unit=11,file="pos.bin",form="unformatted", access="stream", status="replace")
         open(unit=12,file="vel.bin",form="unformatted", access="stream", status="replace")
         open(unit=13, file="energies.bin", form="unformatted", access="stream", status="replace")
-        do j=0,Tsteps
+
+        Ek = 0.5*m*sum(vel(:,1)*vel(:,1)+vel(:,2)*vel(:,2)+vel(:,3)*vel(:,3)) !initial kinetic energy
+        call initialpot(Ep, pos) !we do it just to calculate the initial Potential Energy, the function does not modify anything but Ep
+        ! we are forced to do so to automatize the next loops, doing the leapfrog first then writing
+        write(11) pos(:,:)
+        write(12) vel(:,:)
+        write(13) Ek, Ep
+
+        do j=1,Tsteps
+            call leapfrog(pos,vel,Ep)
             if (mod(j,modu)==0) then
                 Ek = 0.5*m*sum(vel(:,1)*vel(:,1)+vel(:,2)*vel(:,2)+vel(:,3)*vel(:,3))
-                Ep = potential(pos(:,:))
 
                 write(11) pos(:,:)
                 write(12) vel(:,:)
                 write(13) Ek, Ep
             endif
-            call leapfrog(pos,vel)
             t = t+dt
         enddo
         close(11)
@@ -65,13 +72,38 @@
         close(13)
 
         contains
-            subroutine accelerations(A,r)
+            subroutine initialpot(potential,r)
+                real,dimension(N,3),intent(in) :: r
+                real,intent(out) :: potential
+                real :: dx,dy,dz
+                integer :: i,j
+
+                potential=0
+                
+                do i=1,N-1
+                    do j=i+1,N
+                        dx = r(j,1)-r(i,1)
+                        dy = r(j,2)-r(i,2)
+                        dz = r(j,3)-r(i,3)
+
+                        potential = potential + 1./sqrt(dx*dx+dy*dy+dz*dz+eps*eps)
+                    enddo
+                enddo
+
+                potential = -G*m*m*potential
+            
+            end subroutine initialpot
+
+
+            subroutine accelerations(A,potential,r)
                 real,dimension(N,3),intent(in) :: r
                 real,dimension(N,3),intent(out) :: A
+                real,intent(out) :: potential
                 real :: dx,dy,dz, r3, Ax, Ay, Az
                 integer :: i,j
 
                 A = 0
+                potential=0
                 
                 do i=1,N-1
                     do j=i+1,N
@@ -94,17 +126,24 @@
                         A(j,1) = A(j,1) - Ax
                         A(j,2) = A(j,2) - Ay
                         A(j,3) = A(j,3) - Az
+
+                        potential = potential + 1./sqrt(dx*dx+dy*dy+dz*dz+eps*eps) ! We calculate the potential energy there to optimize
                     enddo
                 enddo
+
+                potential = -G*m*m*potential
+
             end subroutine accelerations
 
-            subroutine leapfrog(r,v)
+
+            subroutine leapfrog(r,v,pot)
                 real,dimension(N,3),intent(inout) :: r,v
                 real,dimension(N,3) :: A, r_half
+                real,intent(out) :: pot
                 
                 r_half = r + v*dt/2.             !semi-drift
 
-                call accelerations(A,r_half)
+                call accelerations(A,pot,r_half)
 
                 v = v + A*dt                     !kick
 
@@ -112,24 +151,5 @@
 
             end subroutine leapfrog
 
-            function potential(pos)
-                real,dimension(N,3),intent(in) :: pos
-                real :: potential
-                integer :: i,j
-                real :: dx,dy,dz
 
-                potential = 0
-                do i=1,N-1
-                    do j=i+1,N
-                        dx = pos(j,1)-pos(i,1)
-                        dy = pos(j,2)-pos(i,2)
-                        dz = pos(j,3)-pos(i,3)
-
-                        potential = potential + 1./sqrt(dx*dx+dy*dy+dz*dz+eps*eps)
-                    enddo
-                enddo
-
-                potential = -G*m*m*potential
-                
-            end function potential
     end program main
