@@ -1,2 +1,0 @@
- Time steps, number of bodies, dt, modulo (every simulation results are printed at each modulo)
-        1000        1000   4.99999989E-03          10
