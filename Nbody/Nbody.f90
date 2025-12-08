@@ -1,9 +1,9 @@
     program main
         implicit none
-        integer :: i,j
+        integer :: i,j, modu
 
-        integer,parameter :: Tsteps=int(1e3), N=int(1e3), modu=10
-        real, parameter :: dt=5e-3, m=1./N, mtot=m*N, omega=1., G=1., R=1., eps=0.99
+        integer,parameter :: Tsteps=int(5e3), N=int(5e2)
+        real, parameter :: dt=2e-3, m=1./N, mtot=m*N, omega=1., G=1., R=1., eps=0.1
 
         real :: x,y,z,dist0, t, Ep, Ek
 
@@ -13,7 +13,12 @@
         
         seed = [324549107,1517762999,2043478039,169521159,-1935932375,513922432,1075905891,-1147996143]
         call random_seed(put=seed)
-        
+
+        modu = int(1./(dt*60))
+        if (modu==0) then
+            modu=1
+        endif
+
         do i=1,N
             dist0 = R
             do while (dist0>=R)

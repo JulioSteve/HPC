@@ -1,4 +1,8 @@
 import numpy as np 
+import matplotlib
+
+matplotlib.use("TkAgg")
+
 import matplotlib.pyplot as plt
 import matplotlib.animation as anim
 
@@ -8,11 +12,9 @@ dt = np.loadtxt("settings.dat", unpack=True, skiprows=1, usecols=(2), dtype=np.f
 
 t = np.array([x*dt for x in range(0,Tsteps+1, mod)]) #We tested the reconstruction to ensure it is the right formula
 
-POS = np.fromfile("pos.bin", dtype=np.float32).reshape((len(t),N,3), order="F")
-VEL = np.fromfile("vel.bin", dtype=np.float32).reshape((len(t),N,3), order="F")
+POS = np.fromfile("pos.bin", dtype=np.float32).reshape((len(t),N,3))
+VEL = np.fromfile("vel.bin", dtype=np.float32).reshape((len(t),N,3))
 ENERG = np.fromfile("energies.bin", dtype=np.float32).reshape((len(t),2))
-
-print(len(t))
 
 def animation(flag):
     if flag:
@@ -22,7 +24,7 @@ def animation(flag):
         plt.rc('grid', color='grey')
         plt.rc('text', color='green')
 
-        f = plt.figure()
+        f = plt.figure(figsize=(2560/300,1440/300), dpi=300)
         ax = f.add_subplot(projection='3d')
 
         # Initial scatter
@@ -51,20 +53,19 @@ def animation(flag):
         ax.zaxis.set_pane_color((0, 0, 0, 1))
 
         # Working frame
-        boxlim = (-3,3)
+        boxlim = (-2,2)
         ax.set(xlim=boxlim,ylim=boxlim,zlim=boxlim)
 
         ax.tick_params(colors='white')
 
         # Create animation (store reference in a variable to avoid garbage collection)
-        freq = 60 #FPS (Hz) 
-        tau = 1000/freq#interval in ms between images of animation.
-        ani = anim.FuncAnimation(fig=f, func=update, frames=len(t), interval=tau, blit=False)
+        
+        ani = anim.FuncAnimation(fig=f, func=update, frames=len(t))
 
         # Generating a mp4 video of the simulation or showing the animation
         animtitle = f"N{N}"
-        # ani.save(animtitle+".gif", writer="pillow",fps=freq)
-        ani.save(animtitle+".mp4", writer="ffmpeg", bitrate=5000,fps=freq)
+        
+        ani.save(animtitle+".mp4", writer="ffmpeg",fps=60, dpi=300)
         # plt.show()
 
         # Generating the plot of the trajectories, fixed on the center of mass:
@@ -90,4 +91,17 @@ def animation(flag):
         print("") #Just so the percentage in animation doesn't ruin the terminal layout.
 
 
-animation(False)
+def plot_energ(flag):
+    if flag:
+        fig, ax = plt.subplots(1,1, layout="constrained")
+        fig.set_size_inches(w=2560/300, h=1440/300)
+
+        ax.plot(t,ENERG[:,0], label=r"$E_k$", lw=4)
+        ax.plot(t,ENERG[:,1], label=r"$E_p$", lw=4)
+        ax.plot(t,ENERG[:,0]+ENERG[:,1], label=r"$E_{tot}$", lw=4)
+        ax.legend(loc="upper right")
+
+        plt.show()
+
+animation(True)
+plot_energ(False)
