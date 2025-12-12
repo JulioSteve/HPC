@@ -1,7 +1,7 @@
 import numpy as np 
 import matplotlib
 
-matplotlib.use("TkAgg")
+matplotlib.use("Qt5Agg")
 
 import matplotlib.pyplot as plt
 import matplotlib.animation as anim
@@ -15,6 +15,7 @@ t = np.array([x*dt for x in range(0,Tsteps+1, mod)]) #We tested the reconstructi
 POS = np.fromfile("pos.bin", dtype=np.float32).reshape((len(t),N,3))
 VEL = np.fromfile("vel.bin", dtype=np.float32).reshape((len(t),N,3))
 ENERG = np.fromfile("energies.bin", dtype=np.float32).reshape((len(t),2))
+LTOT = np.fromfile("angularmomentum.bin", dtype=np.float32)
 
 def animation(flag):
     if flag:
@@ -26,9 +27,12 @@ def animation(flag):
 
         f = plt.figure(figsize=(2560/300,1440/300), dpi=300)
         ax = f.add_subplot(projection='3d')
+        ax.set_xlabel(r"$x$ (reduced units)")
+        ax.set_ylabel(r"$y$ (reduced units)")
+        ax.set_zlabel(r"$z$ (reduced units)")
 
         # Initial scatter
-        scatp = dict(s=50, c='gold', marker="*")
+        scatp = dict(s=20, c='gold', marker="*")
         x = POS[0,:,0]
         y = POS[0,:,1]
         z = POS[0,:,2]
@@ -45,6 +49,7 @@ def animation(flag):
             progress = (frame+1)/len(t)*100
             print(f"\rGenerating animation... {progress:5.1f}%", end='')
             scat._offsets3d = (X, Y, Z)
+            f.suptitle(f"T = {t[frame]:.2f} s\n N={N:,} bodies")
             return scat,
 
         # Aesthetics
@@ -53,8 +58,14 @@ def animation(flag):
         ax.zaxis.set_pane_color((0, 0, 0, 1))
 
         # Working frame
-        boxlim = (-2,2)
+        lim = 2
+        boxlim = (-lim,lim)
         ax.set(xlim=boxlim,ylim=boxlim,zlim=boxlim)
+        ticks_uniform = np.linspace(-lim,lim,5)
+        tu_labels = [str(t) for t in ticks_uniform]
+        ax.set_xticks(ticks=ticks_uniform, labels=tu_labels)
+        ax.set_yticks(ticks=ticks_uniform, labels=tu_labels)
+        ax.set_zticks(ticks=ticks_uniform, labels=tu_labels)
 
         ax.tick_params(colors='white')
 
@@ -91,17 +102,45 @@ def animation(flag):
         print("") #Just so the percentage in animation doesn't ruin the terminal layout.
 
 
-def plot_energ(flag):
-    if flag:
-        fig, ax = plt.subplots(1,1, layout="constrained")
-        fig.set_size_inches(w=2560/300, h=1440/300)
+def plots(plot, save):
+    if (plot or save):
+        fig, ([energ,angmom],[Zenerg,Zangmom]) = plt.subplots(
+            2,2, layout="constrained", sharex=True, figsize=(2560/300, 1440/300), dpi=300
+            )
+        fig.supxlabel("Time (s)", color="white")
+        fig.patch.set_facecolor("black")
+        for ax in [energ,angmom,Zenerg,Zangmom]:
+            ax.set_facecolor('dimgray')
+            ax.tick_params(axis="both", colors="white")
 
-        ax.plot(t,ENERG[:,0], label=r"$E_k$", lw=4)
-        ax.plot(t,ENERG[:,1], label=r"$E_p$", lw=4)
-        ax.plot(t,ENERG[:,0]+ENERG[:,1], label=r"$E_{tot}$", lw=4)
-        ax.legend(loc="upper right")
+        energ.plot(t,ENERG[:,0], label=r"$E_k$", lw=4, color="indianred")
+        energ.plot(t,ENERG[:,1], label=r"$E_p$", lw=4, color="goldenrod")
+        energ.plot(t,ENERG[:,0]+ENERG[:,1], label=r"$E_{tot}$", lw=4, color="mediumpurple")
+        energ.set_title("Conservation of total energy:", color="white")
+        energ.legend(loc="upper right")
+        energ.set_ylabel("Energy (reduced unit)", color="white")
 
-        plt.show()
+        ymin = 0.99*LTOT.min()
+        ymax = 1.01*LTOT.max()
+        angmom.set_ylim(ymin,ymax)
+        angmom.plot(t,LTOT, label=r"$L_0$", lw=4, color="paleturquoise")
+        angmom.set_title(r"Conservation of total angular momentum $L_0$", color="white")
+        angmom.legend(loc="upper right")
+        angmom.set_ylabel(r"$||\vec{L_0}||$ (reduced unit)", color="white")
+
+        Zenerg.plot(t,ENERG[:,0]+ENERG[:,1], label=r"$E_{tot}$", lw=1, color="mediumpurple")
+        Zenerg.grid(color="darkgrey")
+        Zenerg.set_ylabel("Energy (reduced unit)", color="white")
+
+        Zangmom.plot(t,LTOT, label=r"$L_0$", lw=1, color="paleturquoise")
+        Zangmom.grid(color="darkgray")
+        Zangmom.set_ylabel(r"$||\vec{L_0}||$ (reduced unit)", color="white")
+
+        if plot:
+            plt.show()
+        if save:
+            # plt.savefig("Conservation.png", format='png', dpi=300)
+            plt.savefig("Conservation.pdf", format="pdf", bbox_inches="tight")
 
 animation(True)
-plot_energ(False)
+plots(plot=False, save=False)
